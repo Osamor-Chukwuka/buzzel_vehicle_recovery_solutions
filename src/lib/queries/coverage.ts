@@ -1,4 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
+import type { CoverageStatus } from '@/lib/types'
+
+type ActiveCoverage = {
+  id: string
+  account_id: string
+  status: CoverageStatus
+  starts_at: string
+  ends_at: string
+  total_amount_minor: number
+  currency: string
+}
 
 export async function getActiveCoverageForVehicle(vehicleId: string) {
   const supabase = await createClient()
@@ -13,5 +24,5 @@ export async function getActiveCoverageForVehicle(vehicleId: string) {
     .limit(1)
     .maybeSingle()
   if (error) throw error
-  return data?.coverage_policies ?? null
+  return (data?.coverage_policies as unknown as ActiveCoverage | null) ?? null
 }

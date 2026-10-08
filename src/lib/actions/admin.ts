@@ -2,6 +2,7 @@
 
 import crypto from 'node:crypto'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { requireRole } from '@/lib/supabase/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -35,6 +36,7 @@ export async function assignRequestAction(requestId: string, formData: FormData)
     sendUserEmail(teamMemberId, 'New Buzzel job assigned', `<p>You have been assigned Buzzel request <strong>${request.reference}</strong>.</p>`).catch(console.error),
   ])
   revalidatePath(`/admin/requests/${requestId}`); revalidatePath('/admin/requests'); revalidatePath('/team')
+  redirect(`/requests/${requestId}?success=Recovery+team+assignment+saved`)
 }
 
 export async function resolveDisputeAction(disputeId: string, formData: FormData) {
@@ -57,6 +59,7 @@ export async function resolveDisputeAction(disputeId: string, formData: FormData
     await Promise.all(recipients.map((id) => sendUserEmail(id, 'Buzzel dispute resolved', `<p>The dispute on request <strong>${resolvedRequest.reference}</strong> has been resolved.</p><p>${escapeHtml(resolution)}</p>`).catch(console.error)))
   }
   revalidatePath('/admin/disputes'); revalidatePath(`/requests/${dispute.request_id}`)
+  redirect('/admin/disputes?success=Dispute+resolved+successfully')
 }
 
 export async function inviteTeamMemberAction(formData: FormData) {
@@ -83,6 +86,7 @@ export async function inviteTeamMemberAction(formData: FormData) {
   })
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'team.invited', entityType: 'team_invitation', entityId: invitation.id, metadata: { email: parsed.email, role: parsed.role } })
   revalidatePath('/admin/team')
+  redirect('/admin/team?success=Invitation+sent+successfully')
 }
 
 export async function requestSecurityAction(requestId: string, formData: FormData) {
@@ -96,6 +100,7 @@ export async function requestSecurityAction(requestId: string, formData: FormDat
   if (error) throw error
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'security.requested', entityType: 'security_request', entityId: securityRequest.id, metadata: { requestId } })
   revalidatePath(`/requests/${requestId}`)
+  redirect(`/requests/${requestId}?success=Security+request+submitted`)
 }
 
 export async function reviewSecurityAction(securityRequestId: string, approved: boolean) {
@@ -119,6 +124,7 @@ export async function reviewSecurityAction(securityRequestId: string, approved: 
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: approved ? 'security.approved' : 'security.declined', entityType: 'security_request', entityId: securityRequestId, metadata: { requestId: request.id } })
   await sendUserEmail(request.customer_user_id, approved ? 'Security support approved for your Buzzel request' : 'Security support update for your Buzzel request', approved && !request.covered_at_request ? `<p>Security support was approved for request <strong>${request.reference}</strong>. An additional security payment is now available in your request.</p>` : `<p>Security support for request <strong>${request.reference}</strong> has been ${approved ? 'approved and is included in your annual cover' : 'declined'}.</p>`).catch(console.error)
   revalidatePath(`/admin/requests/${request.id}`); revalidatePath(`/requests/${request.id}`)
+  redirect(`/requests/${request.id}?success=${approved ? 'Security+request+approved' : 'Security+request+declined'}`)
 }
 
 
@@ -135,4 +141,5 @@ export async function updateStaffRoleAction(staffUserId: string, formData: FormD
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'staff.role_changed', entityType: 'profile', entityId: staffUserId, metadata: { from: previousRole, to: role } })
   await sendUserEmail(staffUserId, 'Your Buzzel staff role was updated', `<p>Your Buzzel role is now <strong>${role}</strong>.</p>`).catch(console.error)
   revalidatePath('/admin/team')
+  redirect('/admin/team?success=Staff+role+updated+successfully')
 }

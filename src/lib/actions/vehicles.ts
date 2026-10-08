@@ -31,7 +31,8 @@ export async function addVehicleAction(formData: FormData) {
     vehicle_type: parsed.data.vehicleType, make: parsed.data.make || null, model: parsed.data.model || null,
     color: parsed.data.color || null, year: parsed.data.year || null,
   })
+  if (error?.code === '23505') redirect('/vehicles/new?error=A+vehicle+with+this+registration+number+already+exists')
   if (error) redirect(`/vehicles/new?error=${encodeURIComponent(error.message)}`)
   revalidatePath('/vehicles')
-  redirect('/vehicles')
+  redirect('/vehicles?success=Vehicle+added+successfully')
 }

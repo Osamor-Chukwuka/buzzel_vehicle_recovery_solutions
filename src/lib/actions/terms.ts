@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/supabase/auth'
+import { acceptCurrentTerms, CURRENT_TERMS_VERSION } from '@/lib/terms'
 
 export async function continueFromDeclarationAction(formData: FormData) {
   const declaration = formData.get('declaration') === 'on'
@@ -14,7 +15,12 @@ export async function continueFromDeclarationAction(formData: FormData) {
   const hasCapturedLocation = Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) && lat !== '' && lng !== ''
   const requestPath = hasCapturedLocation ? `/requests/new?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}` : '/requests/new'
   const cookieStore = await cookies()
-  cookieStore.set('buzzel_pending_terms', '2026-10-08', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 3600, path: '/' })
   const user = await getCurrentUser()
-  redirect(user ? requestPath : `/auth/login?next=${encodeURIComponent(requestPath)}`)
+  if (user) {
+    await acceptCurrentTerms(user.id)
+    cookieStore.delete('buzzel_pending_terms')
+    redirect(requestPath)
+  }
+  cookieStore.set('buzzel_pending_terms', CURRENT_TERMS_VERSION, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 3600, path: '/' })
+  redirect(`/auth/login?next=${encodeURIComponent(requestPath)}`)
 }

@@ -4,8 +4,10 @@ import { useState } from 'react'
 
 export function LocationFields({ prefix = 'breakdown', addressLabel = 'Where are you?', showDestination = false, initialLat, initialLng }: { prefix?: string; addressLabel?: string; showDestination?: boolean; initialLat?: number; initialLng?: number }) {
   const [status, setStatus] = useState<string>('')
+  const [isLocating, setIsLocating] = useState(false)
   const locate = () => {
     if (!navigator.geolocation) return setStatus('Location is not supported by this browser.')
+    setIsLocating(true)
     setStatus('Getting your location…')
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -18,8 +20,12 @@ export function LocationFields({ prefix = 'breakdown', addressLabel = 'Where are
         if (lngInput) lngInput.value = String(lng)
         if (addressInput && !addressInput.value) addressInput.value = `Current location (${lat.toFixed(5)}, ${lng.toFixed(5)})`
         setStatus('Location captured. You can edit the address if needed.')
+        setIsLocating(false)
       },
-      () => setStatus('Could not access your location. Enter the address manually.'),
+      () => {
+        setStatus('Could not access your location. Enter the address manually.')
+        setIsLocating(false)
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     )
   }
@@ -27,7 +33,7 @@ export function LocationFields({ prefix = 'breakdown', addressLabel = 'Where are
   return <div className="grid gap-4">
     <div>
       <label className="bz-label" htmlFor={`${prefix}Address`}>{addressLabel}</label>
-      <div className="flex gap-2"><input className="bz-input" id={`${prefix}Address`} name={`${prefix}Address`} defaultValue={initialLat !== undefined && initialLng !== undefined ? `Captured emergency location (${initialLat.toFixed(5)}, ${initialLng.toFixed(5)})` : ''} placeholder="Enter an address or use current location" required /><button type="button" onClick={locate} className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">Use my location</button></div>
+      <div className="flex gap-2"><input className="bz-input" id={`${prefix}Address`} name={`${prefix}Address`} defaultValue={initialLat !== undefined && initialLng !== undefined ? `Captured emergency location (${initialLat.toFixed(5)}, ${initialLng.toFixed(5)})` : ''} placeholder="Enter an address or use current location" required /><button type="button" onClick={locate} disabled={isLocating} aria-busy={isLocating} className="inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60">{isLocating && <span className="mr-2 size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true"/>}{isLocating ? 'Locating…' : 'Use my location'}</button></div>
       <input type="hidden" name={`${prefix}Lat`} defaultValue={initialLat ?? ''}/><input type="hidden" name={`${prefix}Lng`} defaultValue={initialLng ?? ''}/>
       {status && <p className="mt-2 text-xs text-slate-500">{status}</p>}
     </div>

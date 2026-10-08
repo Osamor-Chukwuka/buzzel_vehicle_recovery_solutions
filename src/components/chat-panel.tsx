@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { sendMessageAction } from '@/lib/actions/chat'
+import { SubmitButton } from '@/components/submit-button'
 
 type Message = { id: number; request_id: string; sender_user_id: string; body: string; created_at: string }
 type SenderLabel = { name: string; role: string }
@@ -35,6 +36,6 @@ export function ChatPanel({ requestId, currentUserId, initialMessages, senderLab
         </div>
       })}
     </div>
-    <form action={action} className="flex gap-2 border-t border-slate-100 p-3"><input name="body" className="bz-input min-w-0" placeholder="Type a message…" maxLength={4000} required aria-label="Chat message"/><button className="rounded-xl bg-slate-900 px-4 text-sm font-bold text-white">Send</button></form>
+    <form action={action} className="flex gap-2 border-t border-slate-100 p-3"><input name="body" className="bz-input min-w-0" placeholder="Type a message…" maxLength={4000} required aria-label="Chat message"/><SubmitButton pendingText="Sending…" variant="secondary" className="px-4">Send</SubmitButton></form>
   </div>
 }

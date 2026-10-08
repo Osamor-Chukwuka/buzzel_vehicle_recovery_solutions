@@ -3,29 +3,19 @@ import type { ReactNode } from 'react'
 import { STATUS_LABELS } from '@/lib/constants'
 import type { RequestStatus } from '@/lib/types'
 
+export { Button } from './button'
+
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`bz-card ${className}`}>{children}</section>
 }
 
-export function Button({ children, className = '', type = 'button', variant = 'primary', name, value, disabled }: {
-  children: ReactNode; className?: string; type?: 'button'|'submit'; variant?: 'primary'|'secondary'|'danger'|'ghost'; name?: string; value?: string; disabled?: boolean
-}) {
-  const styles = {
-    primary: 'bg-[#d92f2f] text-white hover:bg-[#bd2424] shadow-sm',
-    secondary: 'bg-slate-900 text-white hover:bg-slate-800',
-    danger: 'bg-red-700 text-white hover:bg-red-800',
-    ghost: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50',
-  }
-  return <button name={name} value={value} type={type} disabled={disabled} className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]} ${className}`}>{children}</button>
-}
-
 export function LinkButton({ href, children, className = '', variant = 'primary' }: { href: string; children: ReactNode; className?: string; variant?: 'primary'|'secondary'|'ghost' }) {
   const styles = {
-    primary: 'bg-[#d92f2f] text-white hover:bg-[#bd2424]',
+    primary: 'bg-[var(--buzzel-red)] text-white hover:bg-[var(--buzzel-red-dark)]',
     secondary: 'bg-slate-900 text-white hover:bg-slate-800',
-    ghost: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50',
+    ghost: 'bg-white border border-slate-300 text-slate-800 hover:border-slate-400 hover:bg-slate-50',
   }
-  return <Link href={href} className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition ${styles[variant]} ${className}`}>{children}</Link>
+  return <Link href={href} className={`inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${styles[variant]} ${className}`}>{children}</Link>
 }
 
 export function StatusBadge({ status }: { status: RequestStatus }) {
@@ -43,7 +33,12 @@ export function Stat({ label, value, note }: { label: string; value: string|numb
 
 export function ErrorNotice({ message }: { message?: string | null }) {
   if (!message) return null
-  return <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{message}</div>
+  return <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{message}</div>
+}
+
+export function SuccessNotice({ message }: { message?: string | null }) {
+  if (!message) return null
+  return <div role="status" className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"><span aria-hidden="true">✓</span><span>{message}</span></div>
 }
 
 export function EmptyState({ title, description, action }: { title: string; description: string; action?: ReactNode }) {

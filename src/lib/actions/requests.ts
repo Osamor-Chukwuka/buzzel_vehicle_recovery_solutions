@@ -151,6 +151,7 @@ export async function updateTeamStatusAction(requestId: string, nextStatus: Requ
     await sendUserEmail(request.customer_user_id, `Buzzel request update: ${nextStatus.replaceAll('_', ' ')}`, `<p>Your Buzzel request <strong>${request.reference}</strong> is now <strong>${nextStatus.replaceAll('_', ' ')}</strong>.</p>`).catch(console.error)
   }
   revalidatePath(`/requests/${requestId}`); revalidatePath('/team')
+  redirect(`/requests/${requestId}?success=${encodeURIComponent(`Status updated to ${nextStatus.replaceAll('_', ' ')}`)}`)
 }
 
 export async function confirmCompletionAction(requestId: string) {
@@ -166,6 +167,7 @@ export async function confirmCompletionAction(requestId: string) {
   await writeAudit({ actorUserId: user.id, actorRole: profile?.role ?? 'customer', action: 'request.customer_confirmed', entityType: 'service_request', entityId: requestId })
   if (request.assigned_team_member_id) await sendUserEmail(request.assigned_team_member_id, 'Buzzel job completed', `<p>The customer confirmed completion for request <strong>${request.reference}</strong>.</p>`).catch(console.error)
   revalidatePath(`/requests/${requestId}`)
+  redirect(`/requests/${requestId}?success=Request+completion+confirmed`)
 }
 
 export async function adminCloseRequestAction(requestId: string, formData: FormData) {
@@ -180,6 +182,7 @@ export async function adminCloseRequestAction(requestId: string, formData: FormD
   await admin.from('request_status_history').insert({ request_id: requestId, from_status: request.status, to_status: 'completed', changed_by: user.id, note: `Admin override: ${reason}` })
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'request.admin_closed', entityType: 'service_request', entityId: requestId, reason })
   revalidatePath(`/requests/${requestId}`); revalidatePath('/admin/requests')
+  redirect(`/requests/${requestId}?success=Request+closed+successfully`)
 }
 
 export async function raiseDisputeAction(requestId: string, formData: FormData) {
@@ -198,4 +201,5 @@ export async function raiseDisputeAction(requestId: string, formData: FormData) 
   }
   await writeAudit({ actorUserId: user.id, actorRole: profile?.role ?? 'customer', action: 'dispute.raised', entityType: 'dispute', entityId: dispute.id, metadata: { requestId } })
   revalidatePath(`/requests/${requestId}`)
+  redirect(`/requests/${requestId}?success=Dispute+submitted+for+review`)
 }

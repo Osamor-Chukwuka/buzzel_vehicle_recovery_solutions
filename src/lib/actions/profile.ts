@@ -1,5 +1,6 @@
 'use server'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { requireUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
@@ -11,4 +12,5 @@ export async function updateProfileAction(formData: FormData) {
   const { error } = await supabase.from('profiles').update({ full_name: parsed.fullName, phone: parsed.phone }).eq('id', user.id)
   if (error) throw error
   revalidatePath('/profile')
+  redirect('/profile?success=Profile+updated+successfully')
 }

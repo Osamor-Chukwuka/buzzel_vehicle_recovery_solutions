@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { requireRole } from '@/lib/supabase/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -19,6 +20,7 @@ export async function updatePricingRuleAction(ruleId: string, formData: FormData
   if (error) throw error
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'pricing.updated', entityType: 'pricing_rule', entityId: ruleId, metadata: parsed })
   revalidatePath('/admin/settings')
+  redirect('/admin/settings?success=Pricing+updated+successfully')
 }
 
 export async function addRiskAreaAction(formData: FormData) {
@@ -29,4 +31,5 @@ export async function addRiskAreaAction(formData: FormData) {
   if (error) throw error
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'risk_area.created', entityType: 'risk_area', entityId: data.id, metadata: parsed })
   revalidatePath('/admin/settings')
+  redirect('/admin/settings?success=Risk+area+added+successfully')
 }
