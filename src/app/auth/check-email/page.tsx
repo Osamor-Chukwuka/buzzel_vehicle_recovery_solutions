@@ -1,0 +1,3 @@
+import { Logo } from '@/components/logo'
+import { LinkButton } from '@/components/ui'
+export default function CheckEmailPage(){return <main className="grid min-h-screen place-items-center bg-[#f7f8fa] px-4"><div className="bz-card max-w-md p-7 text-center"><Logo/><div className="mx-auto mt-6 grid size-14 place-items-center rounded-full bg-red-50 text-2xl">✉</div><h1 className="mt-4 text-2xl font-black">Check your email</h1><p className="mt-2 text-sm leading-6 text-slate-500">We sent a confirmation link. Open it to finish creating your account, then you can continue in Buzzel.</p><LinkButton href="/auth/login" variant="ghost" className="mt-5 w-full">Back to sign in</LinkButton></div></main>}

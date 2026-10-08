@@ -1,0 +1,22 @@
+BUZZEL QUICK SETUP
+==================
+
+1. Open .env.local.
+2. Add SUPABASE_SECRET_KEY from Supabase -> Project Settings -> API Keys.
+3. Run: npm install
+4. Run: npm run test
+5. Run: npm run dev
+6. Sign up your first user.
+7. Promote that email to super_admin using the SQL in DEPLOYMENT.md.
+8. Push project to a private GitHub repo.
+9. Import repo into Vercel.
+10. Copy all required env vars from DEPLOYMENT.md into Vercel.
+11. Set NEXT_PUBLIC_APP_URL to the final Vercel URL and redeploy.
+12. Add the Vercel URL/auth callback to Supabase Auth URL Configuration.
+
+Optional for demo:
+- Paystack test keys
+- Google Maps API key
+- Resend API key
+
+The project works with demo fallbacks when BUZZEL_DEMO_MODE=true.
