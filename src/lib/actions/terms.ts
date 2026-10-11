@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/supabase/auth'
-import { acceptCurrentTerms, CURRENT_TERMS_VERSION } from '@/lib/terms'
+import { acceptCurrentTerms, clearPendingEmergencyRequest, CURRENT_TERMS_VERSION, rememberPendingEmergencyRequest } from '@/lib/terms'
 
 export async function continueFromDeclarationAction(formData: FormData) {
   const declaration = formData.get('declaration') === 'on'
@@ -19,8 +19,10 @@ export async function continueFromDeclarationAction(formData: FormData) {
   if (user) {
     await acceptCurrentTerms(user.id)
     cookieStore.delete('buzzel_pending_terms')
+    await clearPendingEmergencyRequest()
     redirect(requestPath)
   }
   cookieStore.set('buzzel_pending_terms', CURRENT_TERMS_VERSION, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 3600, path: '/' })
+  await rememberPendingEmergencyRequest(requestPath)
   redirect(`/auth/login?next=${encodeURIComponent(requestPath)}`)
 }

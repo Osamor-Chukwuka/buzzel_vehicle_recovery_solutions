@@ -4,6 +4,8 @@ import { calculateAnnualVehiclePrice, calculateOneOffQuote, FALLBACK_PRICING } f
 import { assessRisk, haversineKm } from '../src/lib/domain/risk.ts'
 import { canTransition, teamNextStatuses } from '../src/lib/domain/status.ts'
 import { annualCoverageDates, isCoverageActive } from '../src/lib/domain/coverage.ts'
+import { emergencyRequestPath, normalizeEmergencyRequestPath } from '../src/lib/emergency-intent.ts'
+import { roleHomePath } from '../src/lib/role-routing.ts'
 
 test('vehicle types have different annual pricing', () => {
   assert.ok(calculateAnnualVehiclePrice({ vehicleType: 'motorcycle' }) < calculateAnnualVehiclePrice({ vehicleType: 'car_suv' }))
@@ -52,4 +54,18 @@ test('annual coverage spans one year and active check respects boundaries', () =
   assert.equal(endsAt.toISOString(), '2027-10-08T00:00:00.000Z')
   assert.equal(isCoverageActive({ status: 'active', starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() }, new Date('2027-01-01T00:00:00Z')), true)
   assert.equal(isCoverageActive({ status: 'active', starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() }, new Date('2027-10-08T00:00:00Z')), false)
+})
+
+test('emergency request resume path only accepts a valid internal request location', () => {
+  assert.equal(emergencyRequestPath(9.082, 8.6753), '/requests/new?lat=9.082&lng=8.6753')
+  assert.equal(emergencyRequestPath(91, 8.6753), '/requests/new')
+  assert.equal(normalizeEmergencyRequestPath('/requests/new?lat=9.082&lng=8.6753'), '/requests/new?lat=9.082&lng=8.6753')
+  assert.equal(normalizeEmergencyRequestPath('https://example.com'), null)
+})
+
+test('staff accounts return to their role workspace after authentication', () => {
+  assert.equal(roleHomePath('customer'), '/dashboard')
+  assert.equal(roleHomePath('team'), '/team')
+  assert.equal(roleHomePath('admin'), '/admin')
+  assert.equal(roleHomePath('super_admin'), '/admin')
 })

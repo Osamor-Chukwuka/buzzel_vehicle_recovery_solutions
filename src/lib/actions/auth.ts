@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { clearPendingEmergencyRequest, getPendingEmergencyRequest } from '@/lib/terms'
+import { getProfile } from '@/lib/supabase/auth'
+import { roleHomePath } from '@/lib/role-routing'
 
 const loginSchema = z.object({ email: z.email(), password: z.string().min(6), next: z.string().optional() })
 const signupSchema = z.object({
@@ -15,13 +18,26 @@ function safeNext(value?: string) {
   return value?.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
 }
 
+async function nextAfterAuthentication(next?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const profile = user ? await getProfile(user.id) : null
+
+  if (profile && profile.role !== 'customer') {
+    await clearPendingEmergencyRequest()
+    return roleHomePath(profile.role)
+  }
+
+  return (await getPendingEmergencyRequest()) ?? safeNext(next)
+}
+
 export async function loginAction(formData: FormData) {
   const parsed = loginSchema.safeParse({ email: formData.get('email'), password: formData.get('password'), next: formData.get('next') || undefined })
   if (!parsed.success) redirect('/auth/login?error=Please+check+your+email+and+password')
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password })
   if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`)
-  redirect(safeNext(parsed.data.next))
+  redirect(await nextAfterAuthentication(parsed.data.next))
 }
 
 export async function signupAction(formData: FormData) {
@@ -35,7 +51,7 @@ export async function signupAction(formData: FormData) {
 
   const supabase = await createClient()
   const origin = (await headers()).get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const next = safeNext(parsed.data.next)
+  const next = await nextAfterAuthentication(parsed.data.next)
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -57,7 +73,7 @@ export async function signupAction(formData: FormData) {
 export async function googleSignInAction(formData?: FormData) {
   const supabase = await createClient()
   const origin = (await headers()).get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const next = safeNext(formData?.get('next')?.toString())
+  const next = await nextAfterAuthentication(formData?.get('next')?.toString())
   const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` } })
   if (error || !data.url) redirect('/auth/login?error=Could+not+start+Google+sign-in')
   redirect(data.url)

@@ -1,8 +1,34 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeEmergencyRequestPath } from '@/lib/emergency-intent'
 
 export const CURRENT_TERMS_VERSION = '2026-10-08'
+export const PENDING_EMERGENCY_REQUEST_COOKIE = 'buzzel_pending_emergency_request'
+const PENDING_EMERGENCY_REQUEST_MAX_AGE = 60 * 60
+
+export async function rememberPendingEmergencyRequest(requestPath: string) {
+  const safePath = normalizeEmergencyRequestPath(requestPath)
+  if (!safePath) return
+  const cookieStore = await cookies()
+  cookieStore.set(PENDING_EMERGENCY_REQUEST_COOKIE, safePath, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: PENDING_EMERGENCY_REQUEST_MAX_AGE,
+    path: '/',
+  })
+}
+
+export async function getPendingEmergencyRequest() {
+  const cookieStore = await cookies()
+  return normalizeEmergencyRequestPath(cookieStore.get(PENDING_EMERGENCY_REQUEST_COOKIE)?.value)
+}
+
+export async function clearPendingEmergencyRequest() {
+  const cookieStore = await cookies()
+  cookieStore.delete(PENDING_EMERGENCY_REQUEST_COOKIE)
+}
 
 export async function hasCurrentTermsAccepted(userId: string) {
   const supabase = await createClient()
@@ -29,5 +55,4 @@ export async function ensureCurrentTermsAccepted(userId: string) {
   const pending = cookieStore.get('buzzel_pending_terms')?.value
   if (pending !== CURRENT_TERMS_VERSION) redirect('/declaration')
   await acceptCurrentTerms(userId)
-  cookieStore.delete('buzzel_pending_terms')
 }
