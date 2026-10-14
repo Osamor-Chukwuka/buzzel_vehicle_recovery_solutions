@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
 import { Card, LinkButton } from '@/components/ui'
+import { SupportCallout } from '@/components/support-callout'
 
 export default function HomePage() {
   return <main className="min-h-screen bg-white">
@@ -65,6 +66,7 @@ export default function HomePage() {
         <Card className="p-5"><p className="text-xs font-black text-[var(--buzzel-red)]">02</p><h3 className="mt-2 text-lg font-black">We assess the request</h3><p className="mt-2 text-sm leading-6 text-slate-500">Vehicle type, distance and configured risk rules determine the operational requirements and one-off quote.</p></Card>
         <Card className="p-5"><p className="text-xs font-black text-[var(--buzzel-red)]">03</p><h3 className="mt-2 text-lg font-black">Stay connected</h3><p className="mt-2 text-sm leading-6 text-slate-500">Track the job, chat with the assigned team and confirm when the work is actually completed.</p></Card>
       </div>
+      <SupportCallout className="mx-auto mt-10 max-w-xl" />
     </section>
   </main>
 }

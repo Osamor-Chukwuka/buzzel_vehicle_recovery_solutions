@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
-import { initializePaystack } from '@/lib/payments/paystack'
+import { initializePaystack, matchesPaystackRequestedAmount, verifyPaystackTransaction } from '@/lib/payments/paystack'
 import { finalizePayment } from '@/lib/payments/finalize'
 
 export async function beginPaymentAction(paymentId: string) {
@@ -29,5 +29,34 @@ export async function completeDemoPaymentAction(paymentId: string) {
   if (!payment) throw new Error('Payment not found')
   if (process.env.BUZZEL_DEMO_MODE !== 'true') throw new Error('Demo payments are disabled')
   await finalizePayment(payment.id, { source: 'demo', confirmedBy: user.id })
+  redirect('/dashboard?payment=success')
+}
+
+export async function confirmPaymentAction(paymentId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { data: payment } = await supabase.from('payments').select('*').eq('id', paymentId).single()
+  if (!payment) throw new Error('Payment not found')
+  if (payment.status === 'paid') redirect('/dashboard?payment=success')
+
+  let verified: Awaited<ReturnType<typeof verifyPaystackTransaction>>
+  try {
+    verified = await verifyPaystackTransaction(payment.provider_reference)
+  } catch (error) {
+    console.error('Manual Paystack verification failed', { paymentId: payment.id, error })
+    redirect(`/payments/${payment.id}?error=${encodeURIComponent('We could not confirm the payment just yet. Please wait a moment and try again.')}`)
+  }
+
+  if (verified?.status !== 'success' || !matchesPaystackRequestedAmount(verified, Number(payment.amount_minor))) {
+    redirect(`/payments/${payment.id}?error=${encodeURIComponent('Paystack is still confirming this payment. Please wait a moment, then check again.')}`)
+  }
+
+  try {
+    await finalizePayment(payment.id, { source: 'manual_paystack_verification', ...verified })
+  } catch (error) {
+    console.error('Manual payment finalization failed', { paymentId: payment.id, error })
+    redirect(`/payments/${payment.id}?error=${encodeURIComponent('Your payment was received, but we could not update your Buzzel account yet. Please try again shortly.')}`)
+  }
+
   redirect('/dashboard?payment=success')
 }

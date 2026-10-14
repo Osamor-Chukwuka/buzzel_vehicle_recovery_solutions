@@ -2,6 +2,17 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { writeAudit } from '@/lib/audit'
 import { annualCoverageDates } from '@/lib/domain/coverage'
 import { sendUserEmail } from '@/lib/email/resend'
+import { after } from 'next/server'
+
+function sendReceiptInBackground(userId: string, subject: string, html: string) {
+  after(async () => {
+    try {
+      await sendUserEmail(userId, subject, html)
+    } catch (error) {
+      console.error('Payment receipt email failed', error)
+    }
+  })
+}
 
 export async function finalizePayment(paymentId: string, providerPayload: Record<string, unknown> = {}) {
   const admin = createAdminClient()
@@ -21,7 +32,7 @@ export async function finalizePayment(paymentId: string, providerPayload: Record
     if (error) throw error
     if (policy) {
       const { data: account } = await admin.from('accounts').select('owner_user_id').eq('id', policy.account_id).single()
-      if (account?.owner_user_id) await sendUserEmail(account.owner_user_id, 'Your Buzzel annual cover is active', `<p>Your annual Buzzel vehicle cover is now active until <strong>${endsAt.toLocaleDateString('en-GB')}</strong>.</p>`).catch(console.error)
+      if (account?.owner_user_id) sendReceiptInBackground(account.owner_user_id, 'Your Buzzel annual cover is active', `<p>Your annual Buzzel vehicle cover is now active until <strong>${endsAt.toLocaleDateString('en-GB')}</strong>.</p>`)
     }
   }
 
@@ -38,7 +49,7 @@ export async function finalizePayment(paymentId: string, providerPayload: Record
         note: 'Payment confirmed',
       })
     }
-    if (request?.customer_user_id) await sendUserEmail(request.customer_user_id, 'Buzzel payment confirmed', `<p>Payment for request <strong>${request.reference}</strong> has been confirmed.</p>`).catch(console.error)
+    if (request?.customer_user_id) sendReceiptInBackground(request.customer_user_id, 'Buzzel payment confirmed', `<p>Payment for request <strong>${request.reference}</strong> has been confirmed.</p>`)
   }
 
   await writeAudit({

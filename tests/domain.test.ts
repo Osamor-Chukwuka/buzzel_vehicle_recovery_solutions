@@ -6,6 +6,7 @@ import { canTransition, teamNextStatuses } from '../src/lib/domain/status.ts'
 import { annualCoverageDates, isCoverageActive } from '../src/lib/domain/coverage.ts'
 import { emergencyRequestPath, normalizeEmergencyRequestPath } from '../src/lib/emergency-intent.ts'
 import { roleHomePath } from '../src/lib/role-routing.ts'
+import { matchesPaystackRequestedAmount } from '../src/lib/payments/paystack.ts'
 
 test('vehicle types have different annual pricing', () => {
   assert.ok(calculateAnnualVehiclePrice({ vehicleType: 'motorcycle' }) < calculateAnnualVehiclePrice({ vehicleType: 'car_suv' }))
@@ -68,4 +69,10 @@ test('staff accounts return to their role workspace after authentication', () =>
   assert.equal(roleHomePath('team'), '/team')
   assert.equal(roleHomePath('admin'), '/admin')
   assert.equal(roleHomePath('super_admin'), '/admin')
+})
+
+test('Paystack validates the initialized amount rather than a bank-transfer amount including fees', () => {
+  assert.equal(matchesPaystackRequestedAmount({ amount: 8_639_594, requested_amount: 8_500_000 }, 8_500_000), true)
+  assert.equal(matchesPaystackRequestedAmount({ amount: 8_639_594, requested_amount: 8_500_000 }, 8_639_594), false)
+  assert.equal(matchesPaystackRequestedAmount({ amount: 8_500_000 }, 8_500_000), true)
 })
