@@ -4,17 +4,43 @@ import type { AppRole, Profile } from '@/lib/types'
 import { Logo } from './logo'
 import { signOutAction } from '@/lib/actions/auth'
 import { SubmitButton } from './submit-button'
+import { DesktopNavigation, MobileNavigation, type NavigationItem } from './app-navigation'
 
 const customer = [
-  ['/dashboard', 'Home', '⌂'], ['/emergency', 'Emergency', '⌖'], ['/requests', 'Requests', '↗'], ['/vehicles', 'Vehicles', '▣'], ['/coverage', 'Coverage', '◆'], ['/profile', 'Profile', '○'],
-] as const
-// Assistance staff only need their job queue and their own profile.
-const team = [['/team', 'Jobs', '◇'], ['/profile', 'Profile', '○']] as const
-// Admin workspaces use the admin request/customer/finance tools, not customer flows.
-const admin = [['/admin', 'Overview', '⌂'], ['/admin/requests', 'Requests', '↗'], ['/admin/customers', 'Customers', '▣'], ['/admin/finance', 'Coverage & payments', '◆'], ['/admin/team', 'Team', '◉'], ['/admin/disputes', 'Disputes', '!'], ['/profile', 'Profile', '○']] as const
-const superAdmin = [...admin.slice(0, -1), ['/admin/audit', 'Audit', '≡'] as const, ['/admin/settings', 'Settings', '⚙'] as const, admin[admin.length - 1]]
+  ['/dashboard', 'Home', 'home'],
+  ['/emergency', 'Emergency', 'emergency'],
+  ['/requests', 'Requests', 'requests'],
+  ['/vehicles', 'Vehicles', 'vehicle'],
+  ['/coverage', 'Coverage', 'coverage'],
+  ['/profile', 'Profile', 'profile'],
+] as const satisfies readonly NavigationItem[]
 
-function navFor(role: AppRole) { return role === 'customer' ? customer : role === 'team' ? team : role === 'super_admin' ? superAdmin : admin }
+const team = [
+  ['/team', 'Jobs', 'jobs'],
+  ['/profile', 'Profile', 'profile'],
+] as const satisfies readonly NavigationItem[]
+
+const admin = [
+  ['/admin', 'Overview', 'home'],
+  ['/admin/requests', 'Requests', 'requests'],
+  ['/admin/customers', 'Customers', 'customers'],
+  ['/admin/finance', 'Coverage & payments', 'finance'],
+  ['/admin/team', 'Team', 'team'],
+  ['/admin/disputes', 'Disputes', 'disputes'],
+  ['/profile', 'Profile', 'profile'],
+] as const satisfies readonly NavigationItem[]
+
+const superAdmin = [
+  ...admin.slice(0, -1),
+  ['/admin/audit', 'Audit', 'audit'] as const,
+  ['/admin/settings', 'Settings', 'settings'] as const,
+  admin[admin.length - 1],
+] satisfies readonly NavigationItem[]
+
+function navFor(role: AppRole): readonly NavigationItem[] {
+  return role === 'customer' ? customer : role === 'team' ? team : role === 'super_admin' ? superAdmin : admin
+}
+
 function mobileNavFor(role: AppRole) {
   const nav = navFor(role)
   return role === 'customer' ? nav.filter(([href]) => href !== '/profile') : nav
@@ -24,15 +50,34 @@ export function AppShell({ children, profile }: { children: ReactNode; profile?:
   const role = profile?.role ?? 'customer'
   const nav = navFor(role)
   const mobileNav = mobileNavFor(role)
-  return <div className="min-h-screen bg-[#f5f7fa] pb-20 md:pb-0">
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white p-5 md:flex md:flex-col">
-      <Logo />
-      <div className="mt-7 rounded-2xl bg-slate-50 p-3"><p className="text-xs font-bold uppercase tracking-wider text-slate-400">{profile ? 'Signed in as' : 'Browsing as'}</p><p className="mt-1 truncate text-sm font-extrabold text-slate-900">{profile?.full_name || 'Guest'}</p><p className="text-xs capitalize text-slate-500">{profile ? profile.role.replace('_', ' ') : 'Sign in to manage requests'}</p></div>
-      <nav className="mt-6 grid gap-1" aria-label="Primary navigation">{nav.map(([href, label, icon]) => <Link key={href} href={href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-[#c52626]"><span className="grid size-7 place-items-center rounded-lg bg-slate-100 text-xs" aria-hidden="true">{icon}</span>{label}</Link>)}</nav>
-      <div className="mt-auto">{profile ? <form action={signOutAction}><SubmitButton pendingText="Signing out..." variant="ghost" className="w-full justify-start">Sign out</SubmitButton></form> : <Link href="/auth/login?next=/emergency" className="flex min-h-11 w-full items-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Sign in</Link>}</div>
+  const roleLabel = profile ? profile.role.replace('_', ' ') : 'Guest'
+
+  return <div className="app-canvas min-h-dvh pb-20 md:pb-0">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[17.5rem] overflow-hidden bg-[#101827] px-5 py-6 text-white md:flex md:flex-col">
+      <div className="pointer-events-none absolute -left-24 top-1/3 size-64 rounded-full bg-red-600/15 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -right-20 -top-16 size-52 rounded-full bg-blue-500/10 blur-3xl" aria-hidden="true" />
+      <div className="relative"><Logo inverse /></div>
+
+      <div className="relative mt-8 rounded-[1.35rem] border border-white/10 bg-white/[.06] p-4 shadow-inner backdrop-blur">
+        <div className="flex items-center gap-3">
+          <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-sm font-black text-white shadow-lg shadow-red-950/20" aria-hidden="true">{profile?.full_name?.charAt(0).toUpperCase() || 'B'}</div>
+          <div className="min-w-0"><p className="truncate text-sm font-extrabold text-white">{profile?.full_name || 'Guest user'}</p><p className="mt-0.5 text-[11px] font-bold capitalize tracking-wide text-slate-400">{roleLabel}</p></div>
+        </div>
+      </div>
+
+      <div className="relative min-h-0 flex-1 overflow-y-auto bz-scrollbar"><DesktopNavigation items={nav} /></div>
+
+      <div className="relative mt-4 border-t border-white/10 pt-4">
+        {profile ? <form action={signOutAction}><SubmitButton pendingText="Signing out..." variant="sidebar" className="w-full justify-start">Sign out</SubmitButton></form> : <Link href="/auth/login?next=/emergency" className="flex min-h-12 w-full items-center rounded-2xl border border-white/10 bg-white/[.06] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/10">Sign in</Link>}
+        <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[.18em] text-slate-600">Recovery, coordinated</p>
+      </div>
     </aside>
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden"><div className="flex items-center justify-between"><Logo /><Link href={profile ? '/profile' : '/auth/login?next=/emergency'} aria-label={profile ? 'Open profile' : 'Sign in'} className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold capitalize text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900">{profile ? profile.role.replace('_',' ') : 'Sign in'}</Link></div></header>
-    <main className="md:ml-64"><div className="bz-container py-5 sm:py-7">{children}</div></main>
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_25px_rgba(15,23,42,.06)] md:hidden" aria-label="Mobile navigation"><div className="mx-auto flex max-w-full justify-start gap-1 overflow-x-auto px-1 md:max-w-md">{mobileNav.map(([href, label, icon]) => <Link key={href} href={href} className="flex min-w-14 flex-col items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-500"><span className="text-base text-[#d92f2f]" aria-hidden="true">{icon}</span>{label}</Link>)}</div></nav>
+
+    <header className="sticky top-0 z-20 border-b border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,.05)] backdrop-blur-xl md:hidden">
+      <div className="flex items-center justify-between gap-3"><Logo /><Link href={profile ? '/profile' : '/auth/login?next=/emergency'} aria-label={profile ? 'Open profile' : 'Sign in'} className="inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-3 text-[11px] font-extrabold capitalize text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-950">{profile ? roleLabel : 'Sign in'}</Link></div>
+    </header>
+
+    <main id="main-content" className="md:ml-[17.5rem]"><div className="bz-app-container py-5 sm:py-8">{children}</div></main>
+    <MobileNavigation items={mobileNav} />
   </div>
 }

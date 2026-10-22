@@ -14,7 +14,7 @@ export function SubmitButton({
   children: ReactNode
   pendingText?: string
   className?: string
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'sidebar'
   name?: string
   value?: string
 }) {
