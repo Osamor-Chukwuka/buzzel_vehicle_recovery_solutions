@@ -20,7 +20,11 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
   const { error } = await searchParams
   await requireUser()
   const supabase = await createClient()
-  const { data: payment } = await supabase.from('payments').select('*').eq('id', id).maybeSingle()
+  const { data: payment, error: paymentError } = await supabase.from('payments').select('*').eq('id', id).maybeSingle()
+  if (paymentError) {
+    console.error('Payment page lookup failed', { paymentId: id, error: paymentError })
+    throw new Error('Payment details could not be loaded')
+  }
   if (!payment) notFound()
 
   const requestPromise = payment.request_id
@@ -29,7 +33,20 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
   const policyPromise = payment.coverage_policy_id
     ? supabase.from('coverage_policies').select('*, coverage_vehicles(annual_price_minor, vehicles(registration_number, make, model, vehicle_type))').eq('id', payment.coverage_policy_id).maybeSingle()
     : Promise.resolve({ data: null })
-  const [{ data: request }, { data: policy }] = await Promise.all([requestPromise, policyPromise])
+  const [requestResult, policyResult] = await Promise.all([requestPromise, policyPromise])
+  if ('error' in requestResult && requestResult.error) {
+    console.error('Payment request details lookup failed', { paymentId: id, requestId: payment.request_id, error: requestResult.error })
+    throw new Error('Payment request details could not be loaded')
+  }
+  if ('error' in policyResult && policyResult.error) {
+    console.error('Payment coverage details lookup failed', { paymentId: id, policyId: payment.coverage_policy_id, error: policyResult.error })
+    throw new Error('Payment coverage details could not be loaded')
+  }
+  const request = requestResult.data
+  const policy = policyResult.data
+  const coverageVehicles = policy && Array.isArray(policy.coverage_vehicles)
+    ? policy.coverage_vehicles as CoverageVehicle[]
+    : []
 
   const serviceAndDistance = request ? Math.max(0, Number(request.quoted_amount_minor) - Number(request.security_fee_minor)) : 0
 
@@ -56,7 +73,7 @@ export default async function PaymentPage({ params, searchParams }: { params: Pr
         {policy && <div className="mb-5 rounded-2xl bg-slate-50 p-4">
           <p className="text-xs font-black uppercase tracking-wider text-slate-400">12-month annual coverage</p>
           <div className="mt-3 grid gap-2">
-            {((policy.coverage_vehicles ?? []) as CoverageVehicle[]).map((item, index) => <div key={`${item.vehicles?.registration_number || index}`} className="flex items-center justify-between gap-4 text-sm">
+            {coverageVehicles.map((item, index) => <div key={`${item.vehicles?.registration_number || index}`} className="flex items-center justify-between gap-4 text-sm">
               <div><p className="font-bold">{item.vehicles?.registration_number || 'Vehicle'}</p><p className="text-xs text-slate-400">{item.vehicles ? VEHICLE_LABELS[item.vehicles.vehicle_type as VehicleType] : 'Annual cover'}</p></div>
               <strong>{formatMoney(Number(item.annual_price_minor), payment.currency)}</strong>
             </div>)}

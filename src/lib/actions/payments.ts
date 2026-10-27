@@ -9,16 +9,34 @@ import { finalizePayment } from '@/lib/payments/finalize'
 export async function beginPaymentAction(paymentId: string) {
   const user = await requireUser()
   const supabase = await createClient()
-  const { data: payment } = await supabase.from('payments').select('*').eq('id', paymentId).single()
-  if (!payment) throw new Error('Payment not found')
+  const { data: payment, error: paymentError } = await supabase.from('payments').select('*').eq('id', paymentId).single()
+  if (paymentError || !payment) {
+    console.error('Payment lookup failed before Paystack initialization', { paymentId, error: paymentError })
+    redirect(`/payments/${paymentId}?error=${encodeURIComponent('We could not load this payment. Please refresh the page and try again.')}`)
+  }
   if (payment.status === 'paid') redirect('/dashboard')
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const paystack = await initializePaystack({
-    email: user.email || 'customer@example.com', amountMinor: Number(payment.amount_minor), reference: payment.provider_reference,
-    callbackUrl: `${appUrl}/payments/callback`, metadata: { paymentId: payment.id, kind: payment.kind },
-  })
-  if (!paystack) { redirect(`/payments/${paymentId}/demo`); throw new Error('Redirecting to demo payment') }
+  let paystack: Awaited<ReturnType<typeof initializePaystack>>
+  try {
+    paystack = await initializePaystack({
+      email: user.email || 'customer@example.com', amountMinor: Number(payment.amount_minor), reference: payment.provider_reference,
+      callbackUrl: `${appUrl}/payments/callback`, metadata: { paymentId: payment.id, kind: payment.kind },
+    })
+  } catch (error) {
+    console.error('Paystack initialization failed', {
+      paymentId: payment.id,
+      providerReference: payment.provider_reference,
+      error: error instanceof Error ? error.message : error,
+    })
+    redirect(`/payments/${payment.id}?error=${encodeURIComponent('Paystack is temporarily unavailable. No charge was made. Please try again or contact Buzzel support.')}`)
+  }
+
+  if (!paystack) {
+    if (process.env.BUZZEL_DEMO_MODE === 'true') redirect(`/payments/${paymentId}/demo`)
+    console.error('Paystack initialization is not configured', { paymentId: payment.id })
+    redirect(`/payments/${payment.id}?error=${encodeURIComponent('Online payment is not configured right now. No charge was made. Please contact Buzzel support.')}`)
+  }
   redirect(paystack.authorization_url)
 }
 

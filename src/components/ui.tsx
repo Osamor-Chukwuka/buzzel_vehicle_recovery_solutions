@@ -10,11 +10,13 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <section className={`bz-card ${className}`}>{children}</section>
 }
 
-export function LinkButton({ href, children, className = '', variant = 'primary' }: { href: string; children: ReactNode; className?: string; variant?: 'primary'|'secondary'|'ghost' }) {
+export function LinkButton({ href, children, className = '', variant = 'primary' }: { href: string; children: ReactNode; className?: string; variant?: 'primary'|'secondary'|'ghost'|'light'|'darkGhost' }) {
   const styles = {
     primary: 'bg-[var(--buzzel-red)] text-white shadow-[0_10px_24px_rgba(201,35,47,.2)] hover:bg-[var(--buzzel-red-dark)] hover:shadow-[0_14px_30px_rgba(201,35,47,.28)]',
     secondary: 'bg-slate-950 text-white shadow-[0_10px_24px_rgba(15,23,42,.16)] hover:bg-slate-800',
     ghost: 'border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50',
+    light: 'border border-white bg-white text-slate-950 shadow-[0_14px_30px_rgba(0,0,0,.25)] hover:border-red-100 hover:bg-red-50 hover:text-slate-950',
+    darkGhost: 'border border-white/25 bg-white/10 text-white shadow-none hover:border-white/40 hover:bg-white/20 hover:text-white',
   }
   return <Link href={href} className={`inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl px-4 py-2.5 text-sm font-extrabold transition-all duration-200 active:scale-[.98] ${styles[variant]} ${className}`}>{children}</Link>
 }
@@ -29,7 +31,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
 }
 
 export function Stat({ label, value, note }: { label: string; value: string|number; note?: string }) {
-  return <Card className="group relative overflow-hidden p-5"><span className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-[var(--buzzel-red)] to-orange-400 transition-transform duration-300 group-hover:scale-x-100"/><p className="text-[11px] font-black uppercase tracking-[.16em] text-slate-400">{label}</p><p className="mt-3 text-3xl font-black tracking-[-.05em] text-slate-950">{value}</p>{note && <p className="mt-1 text-xs font-medium text-slate-500">{note}</p>}</Card>
+  return <Card className="group relative overflow-hidden p-5"><span className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-[var(--buzzel-red)] to-orange-400 transition-transform duration-300 group-hover:scale-x-100"/><p className="text-[11px] font-black uppercase tracking-[.16em] text-slate-500">{label}</p><p className="mt-3 text-3xl font-black tracking-[-.05em] text-slate-950">{value}</p>{note && <p className="mt-1 text-xs font-medium text-slate-500">{note}</p>}</Card>
 }
 
 export function ErrorNotice({ message }: { message?: string | null }) {
