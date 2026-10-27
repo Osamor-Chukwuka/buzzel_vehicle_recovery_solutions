@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { requireUser } from '@/lib/supabase/auth'
+import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentAccount } from '@/lib/queries/account'
 
@@ -15,7 +15,7 @@ const schema = z.object({
 })
 
 export async function addVehicleAction(formData: FormData) {
-  const user = await requireUser()
+  const { user } = await requireRole(['customer'])
   const account = await getCurrentAccount(user.id)
   if (!account) throw new Error('No customer account was found')
   const parsed = schema.safeParse({

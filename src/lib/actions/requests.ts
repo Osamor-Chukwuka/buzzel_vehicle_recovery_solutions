@@ -34,8 +34,7 @@ function optionalNumber(value: FormDataEntryValue | null) {
 }
 
 export async function createRequestAction(formData: FormData) {
-  const user = await requireUser()
-  const profile = await getProfile(user.id)
+  const { user, profile } = await requireRole(['customer'])
   const account = await getCurrentAccount(user.id)
   if (!account) throw new Error('No account found')
 

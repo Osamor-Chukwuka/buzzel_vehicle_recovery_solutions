@@ -1,11 +1,11 @@
 import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { inviteTeamMemberAction, updateStaffRoleAction } from '@/lib/actions/admin'
-import { Button, Card, PageHeader, SuccessNotice } from '@/components/ui'
+import { Button, Card, ErrorNotice, PageHeader, SuccessNotice } from '@/components/ui'
 import { formatDateTime } from '@/lib/format'
 
-export default async function TeamManagementPage({ searchParams }: { searchParams: Promise<{ success?: string }> }) {
-  const { success } = await searchParams
+export default async function TeamManagementPage({ searchParams }: { searchParams: Promise<{ success?: string; error?: string }> }) {
+  const { success, error } = await searchParams
   const { profile } = await requireRole(['admin', 'super_admin'])
   const supabase = await createClient()
   const [{ data: people }, { data: invites }] = await Promise.all([
@@ -16,6 +16,7 @@ export default async function TeamManagementPage({ searchParams }: { searchParam
   return <>
     <PageHeader title="Team management" description="Invite assistance/recovery team members. Super Admins can also invite Admins."/>
     <SuccessNotice message={success}/>
+    <ErrorNotice message={error}/>
     <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
       <Card className="p-5">
         <h2 className="font-black">Send invitation</h2>

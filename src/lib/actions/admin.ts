@@ -79,11 +79,17 @@ export async function inviteTeamMemberAction(formData: FormData) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const inviteUrl = `${appUrl}/auth/signup?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(parsed.email)}`
-  await sendEmail({
-    to: parsed.email,
-    subject: 'You have been invited to Buzzel',
-    html: `<p>You have been invited to join Buzzel as <strong>${parsed.role}</strong>.</p><p><a href="${inviteUrl}">Accept invitation</a></p><p>This invite expires in 7 days.</p>`,
-  })
+  try {
+    await sendEmail({
+      to: parsed.email,
+      subject: 'You have been invited to Buzzel',
+      html: `<p>You have been invited to join Buzzel as <strong>${parsed.role}</strong>.</p><p><a href="${inviteUrl}">Accept invitation</a></p><p>This invite expires in 7 days.</p>`,
+    })
+  } catch (deliveryError) {
+    await admin.from('team_invitations').update({ status: 'revoked' }).eq('id', invitation.id)
+    console.error('Team invitation delivery failed', deliveryError)
+    redirect('/admin/team?error=The+invitation+could+not+be+sent.+Check+the+email+configuration+and+try+again')
+  }
   await writeAudit({ actorUserId: user.id, actorRole: profile.role, action: 'team.invited', entityType: 'team_invitation', entityId: invitation.id, metadata: { email: parsed.email, role: parsed.role } })
   revalidatePath('/admin/team')
   redirect('/admin/team?success=Invitation+sent+successfully')

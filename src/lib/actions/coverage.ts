@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { requireUser, getProfile } from '@/lib/supabase/auth'
+import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentAccount } from '@/lib/queries/account'
@@ -14,8 +14,7 @@ import { writeAudit } from '@/lib/audit'
 const schema = z.object({ vehicleIds: z.array(z.uuid()).min(1) })
 
 export async function createAnnualCoverageAction(formData: FormData) {
-  const user = await requireUser()
-  const profile = await getProfile(user.id)
+  const { user, profile } = await requireRole(['customer'])
   const account = await getCurrentAccount(user.id)
   if (!account) throw new Error('No account found')
   const parsed = schema.safeParse({ vehicleIds: formData.getAll('vehicleIds').map(String) })

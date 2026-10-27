@@ -4,6 +4,7 @@ import { Card, EmptyState, PageHeader, Stat } from '@/components/ui'
 import { formatDate } from '@/lib/format'
 import { VEHICLE_LABELS } from '@/lib/constants'
 import type { VehicleType } from '@/lib/types'
+import { isCoverageActive } from '@/lib/domain/coverage'
 
 export default async function AdminCustomersPage() {
   await requireRole(['admin', 'super_admin'])
@@ -21,7 +22,7 @@ export default async function AdminCustomersPage() {
   const now = new Date()
   const activeCoverByAccount = new Map<string, { vehicleIds: Set<string>; endsAt: string | null }>()
   for (const policy of coverage ?? []) {
-    if (policy.status !== 'active' || !policy.ends_at || new Date(policy.ends_at) <= now) continue
+    if (!isCoverageActive(policy, now)) continue
     const current = activeCoverByAccount.get(policy.account_id) ?? { vehicleIds: new Set<string>(), endsAt: policy.ends_at }
     for (const link of policy.coverage_vehicles ?? []) current.vehicleIds.add(link.vehicle_id)
     if (!current.endsAt || new Date(policy.ends_at) > new Date(current.endsAt)) current.endsAt = policy.ends_at

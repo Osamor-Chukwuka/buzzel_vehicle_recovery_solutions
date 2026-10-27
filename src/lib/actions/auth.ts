@@ -1,22 +1,20 @@
 'use server'
 
+import crypto from 'node:crypto'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { clearPendingEmergencyRequest, getPendingEmergencyRequest } from '@/lib/terms'
 import { getProfile } from '@/lib/supabase/auth'
-import { roleHomePath } from '@/lib/role-routing'
+import { roleHomePath, safeInternalPath } from '@/lib/role-routing'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const loginSchema = z.object({ email: z.email(), password: z.string().min(6), next: z.string().optional() })
 const signupSchema = z.object({
   fullName: z.string().min(2), email: z.email(), phone: z.string().min(7), password: z.string().min(8),
   accountType: z.enum(['individual', 'company']), companyName: z.string().optional(), invite: z.string().optional(), next: z.string().optional(),
 })
-
-function safeNext(value?: string) {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
-}
 
 async function nextAfterAuthentication(next?: string) {
   const supabase = await createClient()
@@ -28,7 +26,25 @@ async function nextAfterAuthentication(next?: string) {
     return roleHomePath(profile.role)
   }
 
-  return (await getPendingEmergencyRequest()) ?? safeNext(next)
+  return (await getPendingEmergencyRequest()) ?? safeInternalPath(next)
+}
+
+async function validateTeamInvitation(token: string, email: string) {
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+  const admin = createAdminClient()
+  const { data: invitation, error } = await admin
+    .from('team_invitations')
+    .select('email, status, expires_at')
+    .eq('token_hash', tokenHash)
+    .maybeSingle()
+
+  if (error) throw error
+  return Boolean(
+    invitation
+    && invitation.status === 'pending'
+    && invitation.email.toLowerCase() === email.toLowerCase()
+    && new Date(invitation.expires_at).getTime() > Date.now(),
+  )
 }
 
 export async function loginAction(formData: FormData) {
@@ -48,6 +64,9 @@ export async function signupAction(formData: FormData) {
   })
   if (!parsed.success) redirect('/auth/signup?error=Please+complete+all+required+fields')
   if (parsed.data.accountType === 'company' && !parsed.data.companyName?.trim() && !parsed.data.invite) redirect('/auth/signup?error=Company+name+is+required')
+  if (parsed.data.invite && !(await validateTeamInvitation(parsed.data.invite, parsed.data.email))) {
+    redirect('/auth/signup?error=This+team+invitation+is+invalid+or+has+expired.+Please+request+a+new+invitation')
+  }
 
   const supabase = await createClient()
   const origin = (await headers()).get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'

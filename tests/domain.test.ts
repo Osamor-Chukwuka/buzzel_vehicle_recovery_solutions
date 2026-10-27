@@ -5,7 +5,7 @@ import { assessRisk, haversineKm } from '../src/lib/domain/risk.ts'
 import { canTransition, teamNextStatuses } from '../src/lib/domain/status.ts'
 import { annualCoverageDates, isCoverageActive } from '../src/lib/domain/coverage.ts'
 import { emergencyRequestPath, normalizeEmergencyRequestPath } from '../src/lib/emergency-intent.ts'
-import { roleHomePath } from '../src/lib/role-routing.ts'
+import { roleHomePath, safeInternalPath } from '../src/lib/role-routing.ts'
 import { matchesPaystackRequestedAmount } from '../src/lib/payments/paystack.ts'
 
 test('vehicle types have different annual pricing', () => {
@@ -69,6 +69,13 @@ test('staff accounts return to their role workspace after authentication', () =>
   assert.equal(roleHomePath('team'), '/team')
   assert.equal(roleHomePath('admin'), '/admin')
   assert.equal(roleHomePath('super_admin'), '/admin')
+})
+
+test('authentication redirects only accept internal application paths', () => {
+  assert.equal(safeInternalPath('/requests/new?vehicle=123'), '/requests/new?vehicle=123')
+  assert.equal(safeInternalPath('https://example.com'), '/dashboard')
+  assert.equal(safeInternalPath('//example.com'), '/dashboard')
+  assert.equal(safeInternalPath('/\\example.com'), '/dashboard')
 })
 
 test('Paystack validates the initialized amount rather than a bank-transfer amount including fees', () => {

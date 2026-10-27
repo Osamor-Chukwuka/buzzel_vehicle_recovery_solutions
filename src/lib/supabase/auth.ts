@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from './server'
 import type { AppRole, Profile } from '@/lib/types'
+import { roleHomePath } from '@/lib/role-routing'
 
 export async function getCurrentUser() {
   const supabase = await createClient()
@@ -27,6 +28,6 @@ export async function requireRole(roles: AppRole[]) {
   const user = await requireUser()
   const profile = await getProfile(user.id)
   if (!profile) throw new Error('Authenticated user profile was not found')
-  if (!roles.includes(profile.role)) redirect('/dashboard')
+  if (!roles.includes(profile.role)) redirect(roleHomePath(profile.role))
   return { user, profile }
 }

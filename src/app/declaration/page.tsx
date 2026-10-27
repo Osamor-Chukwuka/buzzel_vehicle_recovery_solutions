@@ -6,11 +6,11 @@ import { ErrorNotice } from '@/components/ui'
 import { SubmitButton } from '@/components/submit-button'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { hasCurrentTermsAccepted } from '@/lib/terms'
+import { emergencyRequestPath } from '@/lib/emergency-intent'
 
 export default async function DeclarationPage({ searchParams }: { searchParams: Promise<{ error?: string; lat?: string; lng?: string }> }) {
   const { error, lat, lng } = await searchParams
-  const hasCapturedLocation = lat && lng && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
-  const requestPath = hasCapturedLocation ? `/requests/new?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}` : '/requests/new'
+  const requestPath = lat && lng ? emergencyRequestPath(Number(lat), Number(lng)) : '/requests/new'
   const user = await getCurrentUser()
   if (user && await hasCurrentTermsAccepted(user.id)) redirect(requestPath)
   return <main className="min-h-screen bg-[#f7f8fa]"><header className="bg-[#d92f2f] px-4 py-4"><div className="mx-auto flex max-w-md justify-center sm:justify-start"><Logo inverse /></div></header><div className="mx-auto max-w-md px-5 py-8"><h1 className="text-2xl font-black">Declaration & Terms</h1><p className="mt-2 text-sm leading-6 text-slate-500">Before continuing, confirm you are authorised to request assistance for this vehicle and accept Buzzel&apos;s service terms.</p><div className="mt-5"><ErrorNotice message={error} /></div><form action={continueFromDeclarationAction} className="mt-5 grid gap-3"><input type="hidden" name="lat" value={lat || ''}/><input type="hidden" name="lng" value={lng || ''}/>

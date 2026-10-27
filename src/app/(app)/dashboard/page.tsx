@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { requireUser, getProfile } from '@/lib/supabase/auth'
+import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentAccount } from '@/lib/queries/account'
 import { Card, LinkButton, Stat, StatusBadge, EmptyState, SuccessNotice } from '@/components/ui'
@@ -14,19 +13,17 @@ type CoverageSummary = {
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ payment?: string }> }) {
-  const user = await requireUser()
-  const profile = await getProfile(user.id)
-  if (profile?.role === 'team') redirect('/team')
-  if (profile?.role === 'admin' || profile?.role === 'super_admin') redirect('/admin')
+  const { user, profile } = await requireRole(['customer'])
 
   const account = await getCurrentAccount(user.id)
   if (!account) throw new Error('Customer account not found')
 
   const supabase = await createClient()
+  const now = new Date().toISOString()
   const [{ data: vehicles }, { data: requests }, { data: coverage }] = await Promise.all([
     supabase.from('vehicles').select('*').eq('account_id', account.id).eq('is_active', true).order('created_at', { ascending: false }),
     supabase.from('service_requests').select('*').eq('account_id', account.id).order('created_at', { ascending: false }).limit(5),
-    supabase.from('coverage_policies').select('*, coverage_vehicles(vehicle_id)').eq('account_id', account.id).eq('status', 'active').order('created_at', { ascending: false }),
+    supabase.from('coverage_policies').select('*, coverage_vehicles(vehicle_id)').eq('account_id', account.id).eq('status', 'active').lte('starts_at', now).gt('ends_at', now).order('created_at', { ascending: false }),
   ])
 
   const covered = new Map<string, CoverageSummary>()

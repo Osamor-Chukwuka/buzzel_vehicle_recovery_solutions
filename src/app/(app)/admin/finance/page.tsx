@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { Card, EmptyState, PageHeader, Stat } from '@/components/ui'
 import { formatDateTime, formatMoney } from '@/lib/format'
+import { isCoverageActive } from '@/lib/domain/coverage'
 
 export default async function AdminFinancePage() {
   await requireRole(['admin', 'super_admin'])
@@ -14,7 +15,7 @@ export default async function AdminFinancePage() {
   const paid = (payments ?? []).filter((payment) => payment.status === 'paid')
   const pending = (payments ?? []).filter((payment) => payment.status === 'pending')
   const paidTotal = paid.reduce((sum, payment) => sum + Number(payment.amount_minor), 0)
-  const activePolicies = (policies ?? []).filter((policy) => policy.status === 'active' && policy.ends_at && new Date(policy.ends_at) > new Date()).length
+  const activePolicies = (policies ?? []).filter((policy) => isCoverageActive(policy)).length
 
   return <>
     <PageHeader title="Coverage & payments" description="Operational view of annual cover purchases, one-off request payments and security surcharges." />

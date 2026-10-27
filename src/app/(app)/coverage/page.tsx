@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/supabase/auth'
+import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentAccount } from '@/lib/queries/account'
 import { createAnnualCoverageAction } from '@/lib/actions/coverage'
@@ -6,16 +6,21 @@ import { Button, Card, EmptyState, LinkButton, PageHeader, ErrorNotice } from '@
 import { formatMoney, formatDate } from '@/lib/format'
 import { VEHICLE_LABELS } from '@/lib/constants'
 import type { VehicleType } from '@/lib/types'
+import { isCoverageActive } from '@/lib/domain/coverage'
+
+type CoverageVehicleLink = { vehicle_id: string }
 
 export default async function CoveragePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const user = await requireUser(); const account = await getCurrentAccount(user.id); if (!account) throw new Error('Account not found')
+  const { user } = await requireRole(['customer']); const account = await getCurrentAccount(user.id); if (!account) throw new Error('Account not found')
   const supabase = await createClient()
   const [{ data: vehicles }, { data: policies }, { data: rules }] = await Promise.all([
     supabase.from('vehicles').select('*').eq('account_id', account.id).eq('is_active', true),
     supabase.from('coverage_policies').select('*, coverage_vehicles(vehicle_id)').eq('account_id', account.id).order('created_at', { ascending: false }),
     supabase.from('pricing_rules').select('*').eq('active', true),
   ])
-  const activeVehicleIds = new Set((policies ?? []).filter((p) => p.status === 'active' && new Date(p.ends_at) > new Date()).flatMap((p) => p.coverage_vehicles?.map((x:any) => x.vehicle_id) ?? []))
+  const activeVehicleIds = new Set((policies ?? [])
+    .filter((policy) => isCoverageActive(policy))
+    .flatMap((policy) => ((policy.coverage_vehicles ?? []) as CoverageVehicleLink[]).map((link) => link.vehicle_id)))
   const prices = new Map<string, number>((rules ?? []).map((r) => [r.vehicle_type, Number(r.annual_base_minor)]))
   const { error } = await searchParams
   return <><PageHeader title="Annual coverage" description="Pay once to cover selected vehicles for 12 months. Active annual cover includes roadside assistance, recovery and security support with no incident charge."/>{error && <ErrorNotice message={error}/>}<Card className="mb-6 overflow-hidden"><div className="bg-slate-950 p-5 text-white sm:p-6"><p className="text-xs font-black uppercase tracking-widest text-red-300">Pay once</p><h2 className="mt-2 text-2xl font-black">12 months of Buzzel cover</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Pricing varies by vehicle category so a motorcycle, car and lorry are not charged the same amount. Security provision is included in the annual price.</p></div></Card>

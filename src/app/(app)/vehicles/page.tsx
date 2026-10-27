@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/supabase/auth'
+import { requireRole } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentAccount } from '@/lib/queries/account'
 import { Card, EmptyState, LinkButton, PageHeader, SuccessNotice } from '@/components/ui'
@@ -7,7 +7,7 @@ import type { VehicleType } from '@/lib/types'
 
 export default async function VehiclesPage({ searchParams }: { searchParams: Promise<{ success?: string }> }) {
   const { success } = await searchParams
-  const user = await requireUser(); const account = await getCurrentAccount(user.id); if (!account) throw new Error('Account not found')
+  const { user } = await requireRole(['customer']); const account = await getCurrentAccount(user.id); if (!account) throw new Error('Account not found')
   const supabase = await createClient()
   const now = new Date().toISOString()
   const [{ data: vehicles }, { data: coverageLinks }] = await Promise.all([
